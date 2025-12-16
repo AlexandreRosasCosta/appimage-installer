@@ -24,12 +24,13 @@ After that, the application appears in the system menu and can be pinned or laun
 
 ```bash
 appimage-installer /path/to/application.AppImage "Application Name"
+```
 
 ### Example
 
 ```bash
 appimage-installer ~/Downloads/Obsidian.AppImage "Obsidian"
-
+```
 ## Why use this script?
 
 - No dependency on Flathub or Snap
@@ -44,7 +45,7 @@ appimage-installer ~/Downloads/Obsidian.AppImage "Obsidian"
 ~/.local/bin/<app>.AppImage
 ~/.local/share/applications/<app>.desktop
 ~/.local/share/icons/<app>.png
-
+```
 ## Removal
 
 To remove an application installed with this script:
@@ -53,7 +54,7 @@ To remove an application installed with this script:
 rm ~/.local/bin/<app>.AppImage
 rm ~/.local/share/applications/<app>.desktop
 rm ~/.local/share/icons/<app>.png
-
+```
 ## License
 
 MIT License
