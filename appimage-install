@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Uso:
-#   appimage-install /caminho/Para/App.AppImage "Nome do App" [--comment "texto"] [--icon /caminho/icone.png|URL] [--categories "Network;Utility;"] [--copy]
+# Usage:
+#   appimage-install /path/to/App.AppImage "App Name" [--comment "text"] [--icon /path/to/icon.png|URL] [--categories "Network;Utility;"] [--copy]
 #
-# Exemplos:
-#   appimage-install ~/Downloads/Ferdium-*.AppImage Ferdium --comment "Mensagens num só sítio"
+# Examples:
+#   appimage-install ~/Downloads/Ferdium-*.AppImage Ferdium --comment "All your messages in one place"
 #   appimage-install ~/Downloads/Obsidian-*.AppImage Obsidian --icon https://.../icon.png --categories "Office;Utility;"
 
-err() { echo "Erro: $*" >&2; exit 1; }
+err() {
+  echo "Error: $*" >&2
+  exit 1
+}
 
-need_cmd() { command -v "$1" >/dev/null 2>&1 || err "Comando '$1' não encontrado"; }
+need_cmd() { command -v "$1" >/dev/null 2>&1 || err "Command '$1' not found"; }
 
 if [[ $# -lt 2 ]]; then
-  err "Uso: $0 /caminho/AppImage \"Nome\" [--comment ...] [--icon ...] [--categories ...] [--copy]"
+  err "Usage: $0 /path/to/AppImage \"Name\" [--comment ...] [--icon ...] [--categories ...] [--copy]"
 fi
 
 APPIMAGE_PATH="$1"
@@ -27,21 +30,33 @@ DO_COPY="0"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --comment) COMMENT="${2:-}"; shift 2 ;;
-    --icon) ICON_SRC="${2:-}"; shift 2 ;;
-    --categories) CATEGORIES="${2:-}"; shift 2 ;;
-    --copy) DO_COPY="1"; shift 1 ;;
-    *) err "Opção desconhecida: $1" ;;
+  --comment)
+    COMMENT="${2:-}"
+    shift 2
+    ;;
+  --icon)
+    ICON_SRC="${2:-}"
+    shift 2
+    ;;
+  --categories)
+    CATEGORIES="${2:-}"
+    shift 2
+    ;;
+  --copy)
+    DO_COPY="1"
+    shift 1
+    ;;
+  *) err "Unknown option: $1" ;;
   esac
 done
 
-# Resolve o caminho real da AppImage (para lidar com wildcards expandidos)
+# Resolve the real AppImage path (handles expanded wildcards)
 APPIMAGE_PATH="$(readlink -f "$APPIMAGE_PATH" 2>/dev/null || echo "$APPIMAGE_PATH")"
-[[ -f "$APPIMAGE_PATH" ]] || err "AppImage não existe: $APPIMAGE_PATH"
+[[ -f "$APPIMAGE_PATH" ]] || err "AppImage does not exist: $APPIMAGE_PATH"
 
-# “slug” simples para nomes de ficheiro
+# Simple slug for filenames
 SLUG="$(echo "$APP_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')"
-[[ -n "$SLUG" ]] || err "Nome inválido"
+[[ -n "$SLUG" ]] || err "Invalid application name"
 
 BIN_DIR="$HOME/.local/bin"
 APP_DIR="$HOME/.local/share/applications"
@@ -53,7 +68,7 @@ DEST_APPIMAGE="$BIN_DIR/${SLUG}.AppImage"
 DESKTOP_FILE="$APP_DIR/${SLUG}.desktop"
 DEST_ICON="$ICON_DIR/${SLUG}.png"
 
-# Copiar ou mover
+# Copy or move AppImage
 if [[ "$DO_COPY" == "1" ]]; then
   cp -f "$APPIMAGE_PATH" "$DEST_APPIMAGE"
 else
@@ -62,26 +77,26 @@ fi
 
 chmod +x "$DEST_APPIMAGE"
 
-# Ícone (opcional)
+# Icon handling (optional)
 ICON_LINE="Icon=${SLUG}"
 if [[ -n "$ICON_SRC" ]]; then
   if [[ "$ICON_SRC" =~ ^https?:// ]]; then
     need_cmd curl
-    curl -fsSL "$ICON_SRC" -o "$DEST_ICON" || err "Falha ao descarregar ícone"
+    curl -fsSL "$ICON_SRC" -o "$DEST_ICON" || err "Failed to download icon"
     ICON_LINE="Icon=${DEST_ICON}"
   else
-    [[ -f "$ICON_SRC" ]] || err "Ícone não existe: $ICON_SRC"
+    [[ -f "$ICON_SRC" ]] || err "Icon file does not exist: $ICON_SRC"
     cp -f "$ICON_SRC" "$DEST_ICON"
     ICON_LINE="Icon=${DEST_ICON}"
   fi
 fi
 
-# Comment default se não for dado
+# Default comment if none is provided
 if [[ -z "$COMMENT" ]]; then
-  COMMENT="Aplicação AppImage integrada no sistema"
+  COMMENT="AppImage application integrated into the system"
 fi
 
-cat > "$DESKTOP_FILE" <<EOF
+cat >"$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Name=${APP_NAME}
 Comment=${COMMENT}
@@ -95,13 +110,13 @@ EOF
 
 chmod 644 "$DESKTOP_FILE"
 
-# Atualiza menu (se existir)
+# Update desktop database (if available)
 if command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database "$APP_DIR" >/dev/null 2>&1 || true
 fi
 
-echo "OK!"
+echo "Done!"
 echo "AppImage:  $DEST_APPIMAGE"
-echo "Atalho:    $DESKTOP_FILE"
-[[ -n "$ICON_SRC" ]] && echo "Ícone:     $DEST_ICON"
-echo "Agora já aparece no menu. Podes fixar na dock."
+echo "Launcher:  $DESKTOP_FILE"
+[[ -n "$ICON_SRC" ]] && echo "Icon:      $DEST_ICON"
+echo "The application is now available in the system menu and can be pinned to the dock."
